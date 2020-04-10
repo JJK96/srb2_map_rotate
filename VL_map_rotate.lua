@@ -2,6 +2,7 @@ local map_rotation_random = CV_RegisterVar({"map_rotation_random", "Off", CV_NET
 
 local rotation_maps = ""
 local order = {}
+local shuffled = false
 local maps = {}
 local num_maps = 0 --increased later
 
@@ -24,6 +25,14 @@ local to_map_number = function(extended_map_number)
     return ((36*p + q) + 100)
 end
 
+local shuffle = function(tbl)
+  for i = #tbl, 2, -1 do
+    local j = P_RandomKey(i)
+    tbl[i], tbl[j] = tbl[j], tbl[i]
+  end
+  return tbl
+end
+
 local get_index = function(mapnum)
     for k,v in pairs(order) do
         if v == mapnum then
@@ -34,13 +43,16 @@ end
 
 local next_map = function()
     local newindex
+    local index = get_index(gamemap)
+    local map_table = order
     if map_rotation_random.value then
-        newindex = P_RandomKey(num_maps)
-    else
-        local index = get_index(gamemap)
-        newindex = (index+1) % num_maps
+        if shuffled == false or index == num_maps-1 then
+            shuffled = shuffle(order)
+        end
+        map_table = shuffled
     end
-    return order[newindex]
+    newindex = (index+1) % num_maps
+    return map_table[newindex]
 end
 
 addHook("MapLoad", function(mapnum)
