@@ -6,6 +6,13 @@ local shuffled = false
 local maps = {}
 local num_maps = 0 --increased later
 
+local print_table = function(table)
+    for k,v in pairs(table) do
+        print(k .. ': ' .. v)
+    end
+end
+
+
 local char_to_num = function(char)
     return string.byte(char)-string.byte("A")
 end
@@ -33,25 +40,33 @@ local shuffle = function(tbl)
   return tbl
 end
 
-local get_index = function(mapnum)
-    for k,v in pairs(order) do
+local get_index = function(table, mapnum)
+    for k,v in pairs(table) do
         if v == mapnum then
             return k
         end
     end
 end
 
+COM_AddCommand("shuffle_maps", function(player, args)
+    shuffled = shuffle(shuffled)
+end)
+
 local next_map = function()
-    local newindex
-    local index = get_index(gamemap)
+    local newindex = nil
     local map_table = order
+    local index = get_index(map_table, gamemap)
     if map_rotation_random.value then
-        if shuffled == false or index == num_maps-1 then
-            shuffled = shuffle(order)
+        if get_index(shuffled, gamemap) == num_maps-1 then
+            shuffled = shuffle(shuffled)
+            newindex = 0
         end
         map_table = shuffled
+        index = get_index(map_table, gamemap)
     end
-    newindex = (index+1) % num_maps
+    if newindex == nil then
+        newindex = (index+1) % num_maps
+    end
     return map_table[newindex]
 end
 
@@ -63,17 +78,23 @@ end)
 
 COM_AddCommand("rotation_maps", function(player, args)
     if args == nil then
-        local string = "Rotation maps: " .. rotation_maps
         local usage = "rotation_maps <maps>:\nto set the maps that should be in the rotation.\ne.g. rotation_maps \"R0 R1 R2 RX\""
-        CONS_Printf(player, string)
         CONS_Printf(player, usage)
     else
+        num_maps = 0
+        order = {}
+        shuffled = {}
+        maps = {}
         rotation_maps = args
         for map in string.gmatch(args, "%S+") do
             local mapnum = to_map_number(map)
             maps[mapnum] = true
             order[num_maps] = mapnum
+            shuffled[num_maps] = mapnum
             num_maps = num_maps + 1
         end
+        shuffled = shuffle(shuffled)
     end
+    local string = "Rotation maps: " .. rotation_maps
+    CONS_Printf(player, string)
 end)
